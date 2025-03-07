@@ -18,14 +18,16 @@ ENV PYTHONFAULTHANDLER=1
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Get the code
-COPY . /taiga-back
+# Get dependency lists
+RUN mkdir /taiga-back
+COPY requirements* /taiga-back
 WORKDIR /taiga-back
 
 # grab gosu for easy step-down from root
 # https://github.com/tianon/gosu/blob/master/INSTALL.md
 ENV GOSU_VERSION 1.12
 
+# Run everything that will stay the same every rebuild
 RUN set -eux; \
     apt-get update; \
     # install system dependencies
@@ -56,20 +58,12 @@ RUN set -eux; \
     python -m pip install wheel; \
     python -m pip install -r requirements.txt; \
     python -m pip install -r requirements-contribs.txt; \
-    python manage.py compilemessages; \
-    python manage.py collectstatic --no-input; \
-    chmod +x docker/entrypoint.sh; \
-    chmod +x docker/async_entrypoint.sh; \
-    cp docker/config.py settings/config.py; \
     #  create taiga group and user to use it and give permissions over the code (in entrypoint)
     groupadd --system taiga --gid=999; \
     useradd --system --no-create-home --gid taiga --uid=999 --shell=/bin/bash taiga; \
-    mkdir -p /taiga-back/media/exports; \
-    chown -R taiga:taiga /taiga-back; \
     # remove unneeded files and packages
     apt-get purge -y \
        build-essential \
-       gettext \
        git \
        libpq-dev \
        net-tools \
@@ -80,7 +74,18 @@ RUN set -eux; \
     rm -rf /root/.cache; \
     # clean taiga
     rm requirements.txt; \
-    rm requirements-contribs.txt; \
+    rm requirements-contribs.txt;
+
+# Get the code
+COPY . /taiga-back
+
+RUN python manage.py compilemessages; \
+    python manage.py collectstatic --no-input; \
+    chmod +x docker/entrypoint.sh; \
+    chmod +x docker/async_entrypoint.sh; \
+    cp docker/config.py settings/config.py; \
+    mkdir -p /taiga-back/media/exports; \
+    chown -R taiga:taiga /taiga-back; \
     find . -name '__pycache__' -exec rm -r '{}' +; \
     find . -name '*pyc' -exec rm -r '{}' +; \
     find . -name '*po' -exec rm -r '{}' +
