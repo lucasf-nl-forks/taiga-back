@@ -192,7 +192,9 @@ class UserStoryOnlyRefSerializer(serializers.LightSerializer):
 class UserStoryNestedSerializer(ProjectExtraInfoSerializerMixin,
                                 StatusExtraInfoSerializerMixin,
                                 AssignedToExtraInfoSerializerMixin,
-                                DueDateSerializerMixin, serializers.LightSerializer):
+                                DueDateSerializerMixin,
+                                TaggedInProjectResourceSerializer,
+                                serializers.LightSerializer):
     id = Field()
     ref = Field()
     milestone = Field(attr="milestone_id")
@@ -211,6 +213,7 @@ class UserStoryNestedSerializer(ProjectExtraInfoSerializerMixin,
     backlog_order = Field()
     sprint_order = Field()
     kanban_order = Field()
+    tags = MethodField()
 
     epics = MethodField()
     points = MethodField()
